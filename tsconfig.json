@@ -1,0 +1,15 @@
+{
+"compilerOptions": {
+"target": "ES2015",
+"allowJs": true,
+"sourceMap": true,
+"outDir": "./dist/",
+"downlevelIteration": true,
+"strict": true,
+"noImplicitAny": false,
+"esModuleInterop": true,
+"skipLibCheck": true,
+"forceConsistentCasingInFileNames": true
+},
+"exclude": ["node_modules"]
+}
