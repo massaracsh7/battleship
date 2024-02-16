@@ -1,31 +1,33 @@
 {
-    "name": "ws_task",
-    "version": "1.0.0",
-    "description": "Template for the WebSocket remote control task",
-    "type": "module",
-    "scripts": {
+  "name": "crud-api",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
     "start:prod": "webpack --mode=production && node ./dist/index.js",
-    "start:dev": "nodemon ./src/index.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
-    },
-    "author": "Andrei Auchynnikau",
-    "keywords": [],
-    "license": "ISC",
-    "devDependencies": {
+    "start:dev": "nodemon ./index.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/massaracsh7/CRUD-API.git"
+  },
+  "dependencies": {
+    "dot-env": "^0.0.1",
+    "dotenv": "^16.3.1",
+    "ts-node": "^10.9.1",
+    "ws": "^8.8.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.60.1",
     "eslint": "^8.44.0",
     "eslint-plugin-import": "^2.26.0",
     "eslint-plugin-promise": "^6.1.1",
     "eslint-webpack-plugin": "^4.0.1",
-    "nodemon": "^2.0.16",
+    "nodemon": "^3.0.3",
     "ts-loader": "^9.4.4",
     "typescript": "^5.1.6",
     "webpack": "^5.88.1",
     "webpack-cli": "^5.1.4",
     "webpack-shell-plugin-next": "^2.3.1"
-    },
-    "dependencies": {
-    "ws": "^8.8.0",
-    "ts-node": "^10.9.1"
-    }
+  }
 }
