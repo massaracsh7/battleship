@@ -1,17 +1,17 @@
-export default class newId {
-  private usedIds: number[];
+export default class RandomNumber {
+  private numberArr: number[];
 
-  constructor(usedIds: number[]) {
-    this.usedIds = usedIds;
+  constructor(numberNew: number[]) {
+    this.numberArr = numberNew;
   }
 
-  public createId(): number {
-    let newId: number;
+  public create(): number {
+    let newNumber: number;
     do {
-      newId = Math.floor(Math.random() * 1000);
-    } while (this.usedIds.includes(newId));
+      newNumber = Math.floor(Math.random() * 1000);
+    } while (this.numberArr.includes(newNumber));
 
-    return newId;
+    return newNumber;
   }
 }
 
