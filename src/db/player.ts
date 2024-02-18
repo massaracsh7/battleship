@@ -16,11 +16,27 @@ export default class PlayerData {
     return this.player.name;
   }
 
+  public getIndexPlayer(): number {
+    return this.index;
+  }
+
   public getNamedSocket(): DataSocket {
     return this.socket;
   }
 
-  public getIdPlayer(): number {
-    return this.index;
+  public getPlayerInfo(): PlayerInfo {
+    return {
+      name: this.player.name,
+      index: this.index,
+      error: false,
+      errorText: '',
+    };
   }
+}
+
+interface PlayerInfo {
+  name: string;
+  index: number;
+  error: boolean;
+  errorText: string;
 }

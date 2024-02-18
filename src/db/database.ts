@@ -1,8 +1,8 @@
 import PlayerData from './player';
 import { Player } from '../types/types';
-import RandomNumber from '../utils/newId';
 import DataSocket from './datasocket';
-
+import RandomNumber from '../utils/newId';
+import { WebSocket } from 'ws'; 
 export default class DataBase {
   private allUsers: PlayerData[];
 
@@ -10,16 +10,23 @@ export default class DataBase {
     this.allUsers = [];
   }
 
-  public setUser(player: Player, socket: DataSocket): PlayerData {
-    const index = this.createId();
-    const playerData = new PlayerData(player, index, socket);
-    this.allUsers.push(playerData);
+  public setUser(playerInfo: Player, socket: WebSocket): PlayerData {
+    let playerData = this.findPlayer(playerInfo.name);
+    if (!playerData) {
+      const index = this.createId();
+      playerData = new PlayerData(playerInfo, index, new DataSocket(socket));
+      this.allUsers.push(playerData);
+    }
     return playerData;
   }
 
   private createId(): number {
-    const usedIndexes = this.allUsers.map((playerData) => playerData.getIdPlayer());
+    const usedIndexes = this.allUsers.map((playerData) => playerData.getIndexPlayer());
     const random = new RandomNumber(usedIndexes);
     return random.create();
+  }
+
+  private findPlayer(name: string): PlayerData | undefined {
+    return this.allUsers.find((player) => player.getNamePlayer() === name);
   }
 }
