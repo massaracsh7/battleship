@@ -6,6 +6,7 @@ export interface Winner {
 export interface Player {
   name: string;
   password: string;
+  index: number;
 }
 
 

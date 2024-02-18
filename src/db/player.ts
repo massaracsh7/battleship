@@ -2,8 +2,8 @@ import { Player } from '../types/types';
 import DataSocket from './datasocket';
 
 export default class PlayerData {
-  player: Player;
-  index: number;
+  public player: Player;
+  public index: number;
   private socket: DataSocket;
 
   constructor(player: Player, index: number, socket: DataSocket) {

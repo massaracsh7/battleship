@@ -27,7 +27,7 @@ export default class DataSocket {
   }
 
   public getSocket(): WebSocket | undefined {
-    return this.socket ? this.socket : undefined;
+    return this.socket;
   }
 
   public setNewSocket(socket: WebSocket): void {

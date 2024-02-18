@@ -2,13 +2,10 @@ import PlayerData from './player';
 import { Player } from '../types/types';
 import DataSocket from './datasocket';
 import RandomNumber from '../utils/newId';
-import { WebSocket } from 'ws'; 
-export default class DataBase {
-  private allUsers: PlayerData[];
+import { WebSocket } from 'ws';
 
-  constructor() {
-    this.allUsers = [];
-  }
+export default class DataBase {
+  private allUsers: PlayerData[] = [];
 
   public setUser(playerInfo: Player, socket: WebSocket): PlayerData {
     let playerData = this.findPlayer(playerInfo.name);
