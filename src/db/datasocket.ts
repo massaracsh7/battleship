@@ -1,5 +1,5 @@
 import { WebSocket } from 'ws';
-import { Game } from '../game/game';
+import { Game } from './game';
 
 export default class DataSocket {
   public socket: WebSocket;
