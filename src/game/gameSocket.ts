@@ -1,8 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
-import { Room } from './room';
-import { Game } from './game';
-import PlayerData from '../db/player';
-import { Player } from '../types/types';
+import { PlayerModel, PlayerData } from '../player/player';
+import { RoomData, RoomModel } from './room';
+import { GameData } from './game';
 
 enum CommandType {
   Reg = 'reg',
@@ -11,8 +10,8 @@ enum CommandType {
   UpdateRoom = 'update_room',
   AddUserToRoom = 'add_user_to_room',
   CreateGame = 'create_game',
-  StartGame = 'start_game',
   AddShips = 'add_ships',
+  StartGame = 'start_game',
   Attack = 'attack',
   RandomAttack = 'randomAttack',
   Turn = 'turn',
@@ -38,13 +37,11 @@ export default class GameSocket {
 
   constructor(
     port: number,
-    private player: Player,
-    private room: Room,
-    private game: Game,
+    private playerData: PlayerModel,
+    private roomModel: RoomModel,
+    private gameModel: GameData
   ) {
-    this.server = new WebSocketServer({
-      port,
-    });
+    this.server = new WebSocketServer({ port });
 
     this.server.on('connection', this.handleConnection.bind(this));
   }
@@ -63,7 +60,6 @@ export default class GameSocket {
     websocket.on('message', (rawRequest) => {
       try {
         const request = this.unwrapRawRequest(`${rawRequest}`);
-
         this.handleCommand(request.type, request.data, websocket);
       } catch (error) {
         console.log('Received: %s', JSON.parse(rawRequest.toString()));
@@ -96,7 +92,7 @@ export default class GameSocket {
   }
 
   private handleRegistrationCommand(data: unknown, websocket: WebSocket) {
-    // Logic for handling registration command
+    // Logic for handling player registration/login command
   }
 
   private handleCreateRoomCommand(websocket: WebSocket) {
@@ -108,7 +104,7 @@ export default class GameSocket {
   }
 
   private handleAddShipsCommand(data: unknown) {
-    // Logic for handling add ships command
+    // Logic for handling add ships to the game board command
   }
 
   private handleAttackCommand(data: unknown) {
@@ -131,13 +127,12 @@ export default class GameSocket {
     return request;
   }
 
-  private isValidRequest(request): request is ValidRequest {
+  private isValidRequest(request: any): request is ValidRequest {
+    // Validate the structure of the request
     return true;
   }
 
   private updateActiveUser({ name, index }: { name: string; index: number }, websocket: WebSocket) {
     this.activeConnections.set(websocket, { user: { name, index } });
   }
-
-  // Other methods remain unchanged
 }

@@ -1,4 +1,4 @@
-import { Player, PlayerData } from '../player/player';
+import { Player, PlayerModel } from '../player/player';
 
 export interface Room {
   roomUsers: {

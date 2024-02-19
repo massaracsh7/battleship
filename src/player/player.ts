@@ -1,3 +1,4 @@
+
 export interface Player {
   name: string;
   password: string;
@@ -5,7 +6,29 @@ export interface Player {
   index: number;
 }
 
-export class PlayerData {
+export interface PlayerData {
+  players: Player[];
+
+  loginPlayer(data: { name: string; password: string }): { name: string; index: number };
+
+  createPlayer(data: { name: string; password: string }): { name: string; index: number };
+
+  incrementPlayerWins(winnerIndex: number): Player;
+
+  findAllWinners(): { name: string; wins: number }[];
+
+  getPlayerByIndex(index: number): Player | undefined;
+
+  getPlayerByName(name: string): Player | undefined;
+
+  getPlayerWins(index: number): number;
+
+  setPlayerWins(index: number, wins: number): void;
+
+  getAllPlayers(): Player[];
+}
+
+export class PlayerModel {
   private players: Player[];
 
   constructor(players: Player[] = []) {
@@ -55,9 +78,10 @@ export class PlayerData {
     return player;
   }
 
-  public findAllWinners() {
+  public findAllWinners(): { name: string; wins: number }[] {
     return this.players.map(({ name, wins }) => ({ name, wins }));
   }
+
   public getPlayerByIndex(index: number): Player | undefined {
     return this.players.find((player) => player.index === index);
   }
@@ -86,4 +110,3 @@ export class PlayerData {
     return this.players;
   }
 }
-
