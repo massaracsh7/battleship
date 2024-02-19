@@ -1,8 +1,13 @@
 import { WebSocketServer } from 'ws';
+import PlayerData from '../db/player';
+import { Room } from '../game/room';
+import { Game } from '../game/game';
+import GameSocket from '../game/gameSocket';
 
 export default function createSocket(port: number): void {
   const wss = new WebSocketServer({ port });
   console.log(`Websocket opened on ws://localhost:${port}`);
+  const gameServer = new GameSocket(port, PlayerData, Room, Game);
 
   wss.on('connection', (ws) => {
     console.log(`Websocket connection`);

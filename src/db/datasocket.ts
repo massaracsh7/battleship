@@ -1,12 +1,15 @@
 import { WebSocket } from 'ws';
+import { Game } from '../game/game';
 
 export default class DataSocket {
   public socket: WebSocket;
   private nameSocket: string;
+  private game: Game;
 
-  constructor(socket: WebSocket) {
+  constructor(socket: WebSocket, game: Game) {
     this.socket = socket;
     this.nameSocket = '';
+    this.game = game;
 
     this.socket.on('message', (data) => {
       const result = data.toString();
@@ -27,7 +30,7 @@ export default class DataSocket {
   }
 
   public getSocket(): WebSocket | undefined {
-    return this.socket;
+    return this.socket ? this.socket : undefined;
   }
 
   public setNewSocket(socket: WebSocket): void {

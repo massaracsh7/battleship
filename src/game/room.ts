@@ -1,16 +1,14 @@
-import { Player, Ship } from "../types/types";
+import { PlayerInfo, Ship } from "../types/types";
 
 export class Room {
-  public players: Player[];
+  public players: PlayerInfo[];
   public ships: Ship[][] = []; // Ships for each player
   public currentPlayerIndex: number = 0;
   public turnCount: number = 0;
 
-  constructor(players: Player[]) {
+  constructor(players: PlayerInfo[]) {
     this.players = players;
   }
-
-  // Add ships to the specified player's ship array
   public addShips(playerIndex: number, ships: Ship[]): void {
     this.ships[playerIndex] = ships;
   }

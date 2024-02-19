@@ -1,4 +1,4 @@
-import { Player } from '../types/types';
+import { Player, PlayerInfo } from '../types/types';
 import DataSocket from './datasocket';
 
 export default class PlayerData {
@@ -32,11 +32,4 @@ export default class PlayerData {
       errorText: '',
     };
   }
-}
-
-interface PlayerInfo {
-  name: string;
-  index: number;
-  error: boolean;
-  errorText: string;
 }
