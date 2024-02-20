@@ -1,10 +1,7 @@
-import { Player, PlayerModel } from '../player/player';
+import { PlayerInfo } from '../types/types';
 
 export interface Room {
-  roomUsers: {
-    name: string;
-    index: number;
-  }[];
+  roomUsers: PlayerInfo[];
   roomId: number;
 }
 
@@ -12,73 +9,79 @@ export interface RoomData {
   indexRoom: number;
 }
 
-export class RoomModel {
-  constructor(
-    private rooms: Room[] = [],
-    private activeUsers = new Set<string>(),
-  ) { }
+export class RoomManager {
+  private rooms: Room[] = [];
+  private activeUsers = new Set<string>();
 
-  public createRoomAndJoin(playerData: Omit<Player, 'wins' | 'password'>): void {
-    if (this.activeUsers.has(playerData.name)) {
-      return;
-    }
-
-    this.activeUsers.add(playerData.name);
-    this.rooms.push({ roomUsers: [playerData], roomId: this.rooms.length });
+  public createRoom(): Room {
+    const room: Room = { roomUsers: [], roomId: this.rooms.length };
+    this.rooms.push(room);
+    return room;
   }
 
-  public joinRoom(playerData: Omit<Player, 'wins' | 'password'>, { indexRoom }: RoomData): { error: boolean } | undefined {
-    const room = this.rooms[indexRoom];
+  public addUserToRoom(roomID: number, player: PlayerInfo): Room {
+    const room = this.rooms.find((r) => r.roomId === roomID);
+    if (!room) {
+      throw new Error('Room not found');
+    }
+
+    if (room.roomUsers.length >= 2) {
+      throw new Error('Room is full');
+    }
+
+    if (this.activeUsers.has(player.name)) {
+      throw new Error('Player is already in a room');
+    }
+
+    player.index = room.roomUsers.length;
+    room.roomUsers.push(player);
+    this.activeUsers.add(player.name);
+
+    return room;
+  }
+
+  public joinRoom(player: PlayerInfo, roomData: RoomData): { error: boolean } | undefined {
+    const room = this.rooms[roomData.indexRoom];
 
     if (!room || room.roomUsers.length >= 2) {
       throw new Error('Room is full');
     }
 
-    if (this.activeUsers.has(playerData.name)) {
+    if (this.activeUsers.has(player.name)) {
       return { error: true };
     }
 
-    this.activeUsers.add(playerData.name);
-    room.roomUsers.push(playerData);
+    player.index = room.roomUsers.length;
+    room.roomUsers.push(player);
+    this.activeUsers.add(player.name);
 
     return { error: false };
   }
 
-  public createGameForRoom({ indexRoom }: RoomData): { idGame: number; idPlayer: number }[] {
-    const room = this.rooms[indexRoom];
-
-    if (!room) {
-      throw new Error('Room not found');
-    }
-
-    return room.roomUsers.map((player) => ({
-      idGame: indexRoom,
-      idPlayer: player.index,
-    }));
-  }
-
-  public getWaitingRooms(): Room[] {
-    return this.rooms.filter(({ roomUsers }) => roomUsers.length === 1);
-  }
 }
 
-export class RoomApi {
-  constructor(private model = new RoomModel()) { }
+export class RoomService {
+  private manager: RoomManager;
 
-  public createRoom(playerDto: Omit<Player, 'wins' | 'password'>): void {
-    this.model.createRoomAndJoin(playerDto);
+  constructor() {
+    this.manager = new RoomManager();
   }
 
-  public addUserToRoom(playerData: Omit<Player, 'wins' | 'password'>, roomData: unknown): { error: boolean } | undefined {
+  public createRoomAndJoin(player: PlayerInfo): Room {
+    try {
+      return this.manager.createRoom();
+    } catch (error) {
+      console.error('Error creating room:', error);
+      throw error;
+    }
+  }
+
+  public addUserToRoom(player: PlayerInfo, roomData: unknown): { error: boolean } | undefined {
     if (!this.isValidRoomData(roomData)) {
       throw Error('Invalid room data');
     }
 
-    return this.model.joinRoom(playerData, roomData as RoomData);
-  }
-
-  public updateRoomState(): Room[] {
-    return this.model.getWaitingRooms();
+    return this.manager.joinRoom(player, roomData as RoomData);
   }
 
   public isValidRoomData(data: unknown): data is RoomData {
@@ -86,13 +89,5 @@ export class RoomApi {
     if (!('indexRoom' in data) || typeof (data as RoomData).indexRoom !== 'number') return false;
 
     return true;
-  }
-
-  public createGame(data: unknown): { idGame: number; idPlayer: number }[] {
-    if (!this.isValidRoomData(data)) {
-      throw Error('Invalid room data');
-    }
-
-    return this.model.createGameForRoom(data as RoomData);
   }
 }

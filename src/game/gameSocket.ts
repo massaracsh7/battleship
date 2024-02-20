@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
-import { PlayerModel, PlayerData } from '../player/player';
-import { RoomData, RoomModel } from './room';
-import { GameData } from './game';
+import { PlayerModel } from '../player/player';
+import { RoomManager } from '../game/room';
+import { GameData } from '../game/game';
 
 enum CommandType {
   Reg = 'reg',
@@ -37,8 +37,8 @@ export default class GameSocket {
 
   constructor(
     port: number,
-    private playerData: PlayerModel,
-    private roomModel: RoomModel,
+    private playerModel: PlayerModel,
+    private roomModel: RoomManager,
     private gameModel: GameData
   ) {
     this.server = new WebSocketServer({ port });
@@ -62,7 +62,7 @@ export default class GameSocket {
         const request = this.unwrapRawRequest(`${rawRequest}`);
         this.handleCommand(request.type, request.data, websocket);
       } catch (error) {
-        console.log('Received: %s', JSON.parse(rawRequest.toString()));
+        console.log('Received: %s', rawRequest.toString());
         console.error(error);
       }
     });
