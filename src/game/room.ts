@@ -5,11 +5,11 @@ export interface Room {
   roomId: number;
 }
 
-export interface RoomData {
+export interface RoomData2 {
   indexRoom: number;
 }
 
-export class RoomManager {
+export class RoomsData {
   private rooms: Room[] = [];
   private activeUsers = new Set<string>();
 
@@ -40,7 +40,7 @@ export class RoomManager {
     return room;
   }
 
-  public joinRoom(player: PlayerInfo, roomData: RoomData): { error: boolean } | undefined {
+  public joinRoom(player: PlayerInfo, roomData: RoomData2): { error: boolean } | undefined {
     const room = this.rooms[roomData.indexRoom];
 
     if (!room || room.roomUsers.length >= 2) {
@@ -58,13 +58,19 @@ export class RoomManager {
     return { error: false };
   }
 
+
+  public updateRoomState() {
+    const roomsWithOnePlayer = this.rooms.filter(({ roomUsers }) => roomUsers.length === 1);
+    return roomsWithOnePlayer;
+  }
+
 }
 
 export class RoomService {
-  private manager: RoomManager;
+  private manager: RoomData2;
 
   constructor() {
-    this.manager = new RoomManager();
+    this.manager = new RoomData();
   }
 
   public createRoomAndJoin(player: PlayerInfo): Room {
@@ -90,4 +96,5 @@ export class RoomService {
 
     return true;
   }
+
 }
