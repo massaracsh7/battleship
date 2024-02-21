@@ -1,138 +1,62 @@
-import { WebSocketServer, WebSocket } from 'ws';
-import { PlayerModel } from '../player/player';
-import { RoomManager } from '../game/room';
-import { GameData } from '../game/game';
-
-enum CommandType {
-  Reg = 'reg',
-  UpdateWinners = 'update_winners',
-  CreateRoom = 'create_room',
-  UpdateRoom = 'update_room',
-  AddUserToRoom = 'add_user_to_room',
-  CreateGame = 'create_game',
-  AddShips = 'add_ships',
-  StartGame = 'start_game',
-  Attack = 'attack',
-  RandomAttack = 'randomAttack',
-  Turn = 'turn',
-  Finish = 'finish',
-}
-
-interface ValidRequest {
-  type: CommandType;
-  data: unknown;
-  id: number;
-}
-
-interface ConnectionData {
-  user?: {
-    name: string;
-    index: number;
-  };
-}
+import { WebSocket } from 'ws';
+import PlayerData from '../db/player';
+import { Player } from '../types/types';
+import { requestRes } from '../ws/consoleResults';
+import GameManage from './gameManage';
+import SocketManage from './socketManage';
 
 export default class GameSocket {
-  private server: WebSocketServer;
-  private activeConnections = new Map<WebSocket, ConnectionData>();
+  public socket: WebSocket;
+  private handlerSocket: SocketManage;
+  private gameManage: GameManage;
+  private nameSocket: string;
 
-  constructor(
-    port: number,
-    private playerModel: PlayerModel,
-    private roomModel: RoomManager,
-    private gameModel: GameData
-  ) {
-    this.server = new WebSocketServer({ port });
+  constructor(socket: WebSocket, gameManage: GameManage) {
+    this.socket = socket;
+    this.gameManage = gameManage;
+    this.handlerSocket = new SocketManage(this, this.gameManage);
+    this.nameSocket = '';
 
-    this.server.on('connection', this.handleConnection.bind(this));
-  }
+    this.socket.on('message', (data) => {
+      const recivedData = data.toString();
 
-  private handleConnection(websocket: WebSocket) {
-    websocket.on('error', console.error);
+      const command = JSON.parse(recivedData);
 
-    websocket.on('open', () => {
-      this.activeConnections.set(websocket, {});
+      if (!requestRes(command, socket)) return;
+
+      this.handlerSocket.handler(command, this.socket);
     });
 
-    websocket.on('close', () => {
-      this.activeConnections.delete(websocket);
-    });
+    this.socket.on('close', () => {
+      console.log(`Socket of user ${this.nameSocket} was closed`);
 
-    websocket.on('message', (rawRequest) => {
-      try {
-        const request = this.unwrapRawRequest(`${rawRequest}`);
-        this.handleCommand(request.type, request.data, websocket);
-      } catch (error) {
-        console.log('Received: %s', rawRequest.toString());
-        console.error(error);
-      }
+      this.gameManage.deleteSockets();
     });
   }
 
-  private handleCommand(commandType: CommandType, data: unknown, websocket: WebSocket) {
-    switch (commandType) {
-      case CommandType.Reg:
-        this.handleRegistrationCommand(data, websocket);
-        break;
-      case CommandType.CreateRoom:
-        this.handleCreateRoomCommand(websocket);
-        break;
-      case CommandType.AddUserToRoom:
-        this.handleAddUserToRoomCommand(data, websocket);
-        break;
-      case CommandType.AddShips:
-        this.handleAddShipsCommand(data);
-        break;
-      case CommandType.Attack:
-      case CommandType.RandomAttack:
-        this.handleAttackCommand(data);
-        break;
-      default:
-        throw new Error('Invalid command');
-    }
+  public setName(name: string) {
+    this.nameSocket = name;
   }
 
-  private handleRegistrationCommand(data: unknown, websocket: WebSocket) {
-    // Logic for handling player registration/login command
+  public getName(): string {
+    return this.nameSocket;
   }
 
-  private handleCreateRoomCommand(websocket: WebSocket) {
-    // Logic for handling create room command
+  public getSocket(): WebSocket {
+    return this.socket ? this.socket : undefined;
   }
 
-  private handleAddUserToRoomCommand(data: unknown, websocket: WebSocket) {
-    // Logic for handling add user to room command
+  public isSocketUser(socket: WebSocket): boolean {
+    if (socket === this.socket) return true;
+
+    return false;
   }
 
-  private handleAddShipsCommand(data: unknown) {
-    // Logic for handling add ships to the game board command
+  public setNewSocket(socket: WebSocket): void {
+    this.socket = socket;
   }
 
-  private handleAttackCommand(data: unknown) {
-    // Logic for handling attack command
-  }
-
-  private createResponseJSON<D>(type: CommandType, data: D): ValidRequest {
-    return {
-      type,
-      data,
-      id: 0,
-    };
-  }
-
-  private unwrapRawRequest(rawRequest: string): ValidRequest {
-    const request = JSON.parse(rawRequest);
-
-    if (!this.isValidRequest(request)) throw new Error('Invalid client request');
-
-    return request;
-  }
-
-  private isValidRequest(request: any): request is ValidRequest {
-    // Validate the structure of the request
-    return true;
-  }
-
-  private updateActiveUser({ name, index }: { name: string; index: number }, websocket: WebSocket) {
-    this.activeConnections.set(websocket, { user: { name, index } });
+  public checkSocketName(): boolean {
+    return !!this.nameSocket
   }
 }

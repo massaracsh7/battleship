@@ -3,7 +3,6 @@ import DataBase from '../db/database';
 import { RoomsData } from './room';
 import GameSocket from './gameSocket';
 
-
 export default class GameManage {
   private database: DataBase;
   private roomData: RoomsData;
@@ -35,8 +34,24 @@ export default class GameManage {
     return this.allSockets.find((nSocket: GameSocket) => nSocket.isSocketUser(socket));
   }
 
-  public findSocketByName(name: string): GameSocket {
+  public findSocket(name: string): GameSocket {
     return this.allSockets.find((item: GameSocket) => item && item.getName() === name);
+  }
+
+
+  public deleteSocket(socket: GameSocket): void {
+    this.allSockets = this.allSockets.map((item: GameSocket) => {
+      if (item.getName() !== socket.getName()) return item;
+    });
+  }
+
+  private addToAllSockets(socket: WebSocket): void {
+    const newSocket = new GameSocket(socket, this);
+    this.allSockets.push(newSocket);
+  }
+
+  public deleteSockets(): void {
+    this.allSockets = this.allSockets.filter((socket: GameSocket) => socket.getSocket().readyState === 1);
   }
 
 }

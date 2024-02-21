@@ -1,12 +1,12 @@
 
 import { WebSocket } from "ws";
 
-export function response(data: string): void {
+export function responseRes(data: string): void {
   console.log('Send command to client:');
   console.log(`Response to client ${data}`);
 }
 
-export function requestOutput(command, socket: WebSocket): boolean {
+export function requestRes(command, socket: WebSocket): boolean {
   if (!command.hasOwnProperty('type')) {
     console.log('Error from socket');
     const resErr = {

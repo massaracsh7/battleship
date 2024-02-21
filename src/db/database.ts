@@ -1,13 +1,13 @@
 import PlayerData from './player';
 import { Player } from '../types/types';
-import DataSocket from './datasocket';
+import GameSocket from '../game/gameSocket';
 import RandomNumber from '../utils/newId';
 import { WebSocket } from 'ws';
 
 export default class DataBase {
   private allUsers: PlayerData[] = [];
 
-  public setUser(playerInfo: Player, socket: DataSocket): PlayerData {
+  public setUser(playerInfo: Player, socket: GameSocket): PlayerData {
     let playerData = this.findPlayer(playerInfo.name);
     if (!playerData) {
       const index = this.createId();
