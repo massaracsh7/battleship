@@ -1,29 +1,69 @@
-import PlayerData from './player';
-import { Player } from '../types/types';
-import GameSocket from '../game/gameSocket';
-import RandomNumber from '../utils/newId';
 import { WebSocket } from 'ws';
+import { PlayerLogin, PlayerWin } from '../types/types';
+import Player from './player';
+import BaseSocket from './baseSocket';
+import RandomId from '../utils/randomNumber';
 
 export default class DataBase {
-  private allUsers: PlayerData[] = [];
+  private allPlayers: Player[];
 
-  public setUser(playerInfo: Player, socket: GameSocket): PlayerData {
-    let playerData = this.findPlayer(playerInfo.name);
-    if (!playerData) {
-      const index = this.createId();
-      playerData = new PlayerData(playerInfo, index, socket);
-      this.allUsers.push(playerData);
+  constructor() {
+    this.allPlayers = [];
+  }
+
+  public registerUser(playerData: PlayerLogin, socket: BaseSocket): Player {
+    const existingPlayer = this.findUser(playerData);
+
+    if (existingPlayer) {
+      return existingPlayer;
     }
-    return playerData;
+
+    const randomIndex = new RandomId(this.allPlayers.map((player) => player.getIndex()));
+    const index = randomIndex.id;
+
+    const newPlayer = new Player(playerData, index, socket);
+    this.allPlayers.push(newPlayer);
+
+    return newPlayer;
   }
 
-  private createId(): number {
-    const usedIndexes = this.allUsers.map((playerData) => playerData.getIndexPlayer());
-    const random = new RandomNumber(usedIndexes);
-    return random.create();
+  public hasUser(playerData: PlayerLogin): boolean {
+    return this.allPlayers.some((player) => player.isUser(playerData));
   }
 
-  private findPlayer(name: string): PlayerData | undefined {
-    return this.allUsers.find((player) => player.getNamePlayer() === name);
+  public findUser(playerData: PlayerLogin): Player | undefined {
+    return this.allPlayers.find((player) => player.isUser(playerData));
+  }
+
+  public findUserBySocket(socket: WebSocket): Player | undefined {
+    return this.allPlayers.find((player) => player.getNamedSocket().getSocket() === socket);
+  }
+
+  public getAllWinners(): PlayerWin[] {
+    return this.allPlayers.map((player) => player.getAllWins());
+  }
+
+  public authenticateUser(playerData: PlayerLogin): boolean {
+    const userExists = this.allPlayers.some((player) => player.checkName(playerData.name));
+
+    if (!userExists) {
+      return false;
+    }
+
+    const correctPass = this.allPlayers.some((player) => player.checkPassword(playerData.password));
+
+    return correctPass;
+  }
+
+  public findUserByIdRoom(roomId: number): Player | undefined {
+    return this.allPlayers.find((player) => player.getIndexRoom() === roomId);
+  }
+
+  public declareWinner(playerId: number): void {
+    const player = this.allPlayers.find((item) => item.getIndex() === playerId);
+
+    if (player) {
+      player.setWins();
+    }
   }
 }

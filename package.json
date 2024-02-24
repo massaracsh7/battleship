@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "start:prod": "webpack --mode=production && node ./dist/index.js",
-    "start:dev": "nodemon ./index.ts"
+    "start:dev": "tsx watch ./index.ts"
   },
   "repository": {
     "type": "git",
@@ -13,9 +13,8 @@
   "dependencies": {
     "dot-env": "^0.0.1",
     "dotenv": "^16.3.1",
-    "ts-node": "^10.9.1",
-    "ws": "^8.8.0",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "ws": "^8.8.0"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.60.1",
@@ -23,8 +22,8 @@
     "eslint-plugin-import": "^2.26.0",
     "eslint-plugin-promise": "^6.1.1",
     "eslint-webpack-plugin": "^4.0.1",
-    "nodemon": "^3.0.3",
     "ts-loader": "^9.4.4",
+    "tsx": "^4.7.1",
     "typescript": "^5.1.6",
     "webpack": "^5.88.1",
     "webpack-cli": "^5.1.4",

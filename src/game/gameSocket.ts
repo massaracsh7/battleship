@@ -1,62 +1,87 @@
-import { WebSocket } from 'ws';
-import PlayerData from '../db/player';
-import { Player } from '../types/types';
-import { requestRes } from '../ws/consoleResults';
-import GameManage from './gameManage';
-import SocketManage from './socketManage';
+import WebSocket from 'ws';
+import BaseSocket from '../db/baseSocket';
+import Handlers from '../ws/handler';
+import { logResponse } from '../utils/logMessage';
+import Game from './game';
+import Player from '../db/player';
+import RoomsBase from '../db/roomsHandler';
+import { PlayerLogin, Command, ShipPlacementData, AttackRequest, RandomAttackRequest, RoomData, ConsoleMessage } from '../types/types';
 
 export default class GameSocket {
-  public socket: WebSocket;
-  private handlerSocket: SocketManage;
-  private gameManage: GameManage;
-  private nameSocket: string;
+  private handler: Handlers;
+  private socket: BaseSocket;
+  private game: Game;
 
-  constructor(socket: WebSocket, gameManage: GameManage) {
+  constructor(socket: BaseSocket, game: Game) {
     this.socket = socket;
-    this.gameManage = gameManage;
-    this.handlerSocket = new SocketManage(this, this.gameManage);
-    this.nameSocket = '';
-
-    this.socket.on('message', (data) => {
-      const recivedData = data.toString();
-
-      const command = JSON.parse(recivedData);
-
-      if (!requestRes(command, socket)) return;
-
-      this.handlerSocket.handler(command, this.socket);
-    });
-
-    this.socket.on('close', () => {
-      console.log(`Socket of user ${this.nameSocket} was closed`);
-
-      this.gameManage.deleteSockets();
-    });
+    this.game = game;
+    this.handler = new Handlers();
   }
 
-  public setName(name: string) {
-    this.nameSocket = name;
-  }
+  public handle(command: ConsoleMessage, socket: WebSocket): void {
+    let user: Player;
 
-  public getName(): string {
-    return this.nameSocket;
-  }
+    switch (command.type) {
+      case Command.REG:
+        const data: PlayerLogin = JSON.parse(command.data);
 
-  public getSocket(): WebSocket {
-    return this.socket ? this.socket : undefined;
-  }
+        if (!this.socket.checkSocketName()) {
+          this.socket.setName(data.name);
+        }
 
-  public isSocketUser(socket: WebSocket): boolean {
-    if (socket === this.socket) return true;
+        const regResponse: string = this.handler.register(data, this.game.getDB(), this.socket);
 
-    return false;
-  }
+        logResponse(regResponse);
+        socket.send(regResponse);
 
-  public setNewSocket(socket: WebSocket): void {
-    this.socket = socket;
-  }
+        const updateRoomsResponse: string = this.handler.updateRoom(this.game.getRooms());
+        socket.send(updateRoomsResponse);
 
-  public checkSocketName(): boolean {
-    return !!this.nameSocket
+        this.handler.updateWinners(this.game.getDB(), this.game.getSockets());
+        break;
+
+      case Command.CREATE_ROOM:
+        user = this.game.getDB().findUserBySocket(socket);
+        const rooms: RoomsBase = this.game.getRooms();
+        rooms.addRoom(user);
+
+        this.handler.updateAllRooms(rooms, this.game.getSockets());
+        break;
+
+      case Command.ADD_USER_TO_ROOM:
+        const roomIdObj = JSON.parse(command.data) as RoomData;
+        user = this.game.getDB().findUserBySocket(socket);
+
+        if (roomIdObj.roomId !== user.getIndexRoom()) {
+          const fUser: Player = this.game.getDB().findUserByIdRoom(roomIdObj.roomId);
+          const responses: Array<string> = this.handler.addUserToRoom(fUser, user, this.game.getRooms());
+
+          fUser.getNamedSocket().getSocket().send(responses[0]);
+          user.getNamedSocket().getSocket().send(responses[1]);
+
+          this.handler.updateAllRooms(this.game.getRooms(), this.game.getSockets());
+        }
+        break;
+
+      case Command.ADD_SHIPS:
+        const shipsData = JSON.parse(command.data) as ShipPlacementData;
+        const resultOperation = this.handler.addShips(shipsData, this.game.getRooms());
+
+        if (resultOperation) {
+          this.handler.sendTurn(shipsData.gameId, this.game.getRooms(), this.game.getDB(), this.game.getSockets());
+        }
+        break;
+
+      case Command.ATTACK:
+        const targetAttack = JSON.parse(command.data) as AttackRequest;
+        this.handler.handleAttack(targetAttack, this.game.getRooms(), this.game.getDB(), this.game.getSockets());
+        break;
+
+      case Command.RANDOM_ATTACK:
+        const randomAttack = JSON.parse(command.data) as RandomAttackRequest;
+        this.handler.handleRandomAttack(randomAttack, this.game.getRooms(), this.game.getDB(), this.game.getSockets());
+        break;
+
+    }
   }
 }
