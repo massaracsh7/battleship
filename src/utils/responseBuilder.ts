@@ -9,12 +9,11 @@ export default class ResponseBuilder {
     this.id = id;
   }
 
-  public buildResponse(): string {
-    const response = {
+  public getResult(): string {
+    return JSON.stringify({
       type: this.type,
       data: this.data,
       id: this.id
-    };
-    return JSON.stringify(response);
+    });
   }
 }

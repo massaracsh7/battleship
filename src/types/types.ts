@@ -1,24 +1,103 @@
 export interface PlayerData {
-  name: string;
-  index: number;
-  hasError: boolean;
-  errorText: string;
+  name: string,
+  index: number,
+  error: boolean,
+  errorText: string,
 }
 
 export interface PlayerWin {
-  name: string;
-  wins: number;
+  name: string,
+  wins: number,
 }
 
 export interface PlayerLogin {
-  name: string;
-  password: string;
+  name: string,
+  password: string,
 }
 
-export interface ConsoleMessage {
-  type: string;
-  data: string;
-  id: number;
+export interface ShipInfo {
+  position: Position,
+  direction: boolean,
+  length: number,
+  type: "small" | "medium" | "large" | "huge",
+}
+
+export interface Position {
+  x: number,
+  y: number
+}
+
+export interface RoomInfo {
+  indexRoom: number
+}
+
+export interface UpdateRoom {
+  roomId: number,
+  roomUsers: RoomPlayers[]
+}
+
+export interface RoomPlayers {
+  name: string,
+  index: number,
+}
+
+export interface Cell {
+  x: number,
+  y: number,
+  disrupt: boolean
+}
+
+export type Grid = {
+  position: Cell[],
+  type: "small" | "medium" | "large" | "huge",
+  sink: boolean;
+}
+
+export interface GameData {
+  idGame: number,
+  idPlayer: number,
+}
+
+export interface AddShipInfo {
+  gameId: number,
+  ships: ShipInfo[]
+  indexPlayer: number
+}
+
+export interface StartInfo {
+  ships: ShipInfo[]
+  currentPlayerIndex: number
+}
+
+export interface AttackReqInfo {
+  gameId: number,
+  indexPlayer: number,
+  x: number,
+  y: number,
+}
+
+export interface Attack {
+  position: Position
+  status: "miss" | "killed" | "shot"
+}
+
+export interface AttackResInfo {
+  currentPlayer: number,
+  position: Position
+  status: "miss" | "killed" | "shot"
+}
+
+export interface RandomReq {
+  gameId: number,
+  indexPlayer: number
+}
+
+export interface Turn {
+  currentPlayer: number
+}
+
+export interface FinishInfo {
+  winPlayer: number
 }
 
 export enum Command {
@@ -37,104 +116,22 @@ export enum Command {
   FINISH = 'finish'
 }
 
-export type ShipSize = "small" | "medium" | "large" | "huge";
 
-export interface ShipData {
-  position: GridPoint;
-  direction: boolean;
-  length: number;
-  size: ShipSize;
-}
-
-export interface GridPoint {
-  x: number;
-  y: number;
-}
-
-export interface GameData {
-  gameId: number;
-  playerId: number;
-}
-
-export interface ShipPlacementData {
-  gameId: number;
-  ships: ShipData[];
-  indexPlayer: number;
-}
-
-export interface GameStartData {
-  ships: ShipData[];
-  currentPlayerIndex: number;
-}
-
-export interface Attack {
-  position: GridPoint;
-  status: AttackResult;
-}
-
-export interface AttackRequest {
-  gameId: number;
-  indexPlayer: number;
-  x: number;
-  y: number;
-}
-
-export type AttackResult = "miss" | "killed" | "shot";
-
-export interface AttackResponse {
-  position: GridPoint;
-  result: AttackResult;
-  currentPlayer: number;
-}
-
-export interface RandomAttackRequest {
-  gameId: number;
-  indexPlayer: number;
-}
-
-export interface TurnData {
-  currentPlayer: number;
-}
-
-export interface GameEndData {
-  winningPlayer: number;
-}
-
-export interface Cell {
-  x: number;
-  y: number;
-  isHole: boolean;
-}
-
-export interface Grid {
-  cells: Cell[];
-  size: ShipSize;
-  isDead: boolean;
-}
-
-export interface RoomData {
-  roomId: number;
-}
-
-export interface RoomUpdate {
-  roomId: number;
-  players: RoomPlayerData[];
-}
-
-export interface RoomPlayerData {
-  name: string;
-  index: number;
-}
-
-export enum ShipTypes {
+export enum ShipsTypes {
   huge = 4,
   large = 3,
   medium = 2,
   small = 1
 }
 
-export interface CreatedShipData {
-  ship: ShipData;
-  shipPoints: GridPoint[];
-  forbiddenPoints: GridPoint[];
+export interface CreatedShip {
+  ship: ShipInfo,
+  shipPoints: Position[],
+  banPoints: Position[]
+}
+
+export interface ConsoleMessage {
+  type: string,
+  data: string,
+  id: number
 }

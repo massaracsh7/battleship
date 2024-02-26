@@ -1,49 +1,53 @@
-import WebSocket, { RawData, WebSocketServer } from 'ws';
+import WebSocket from 'ws';
 import DataBase from '../db/database';
-import RoomsHandler from '../db/roomsHandler';
+import RoomsBase from '../db/roomsHandler';
 import BaseSocket from '../db/baseSocket';
 
 export default class Game {
-  private db: DataBase;
-  private rooms: RoomsHandler;
-  private sockets: Array<BaseSocket>;
+  private database: DataBase;
+  private roomBase: RoomsBase;
+  private allSockets: BaseSocket[];
 
   constructor() {
-    this.db = new DataBase();
-    this.rooms = new RoomsHandler();
-    this.sockets = [];
+    this.database = new DataBase();
+    this.roomBase = new RoomsBase();
+    this.allSockets = [];
   }
 
-  public addSocket(socket: WebSocket): void {
-    const newSocket = new BaseSocket(socket, this);
-    this.sockets.push(newSocket);
+  public setSocket(socket: WebSocket): void {
+    this.addAllSockets(socket);
   }
 
-  public getSockets(): Array<BaseSocket> {
-    return this.sockets;
+  public getAllSockets(): BaseSocket[] {
+    return this.allSockets;
   }
 
-  public getDB(): DataBase {
-    return this.db;
+  public getDb(): DataBase {
+    return this.database;
   }
 
-  public getRooms(): RoomsHandler {
-    return this.rooms;
+  public getRooms(): RoomsBase {
+    return this.roomBase;
   }
 
-  public findBySocket(socket: WebSocket): BaseSocket {
-    return this.sockets.find((s: BaseSocket) => s.isSocketUser(socket));
+  public findSocket(socket: WebSocket): BaseSocket | undefined {
+    return this.allSockets.find((item: BaseSocket) => item.isSocketPl(socket));
   }
 
-  public findByName(name: string): BaseSocket {
-    return this.sockets.find((s: BaseSocket) => s && s.getName() === name);
+  public findByName(name: string): BaseSocket | undefined {
+    return this.allSockets.find((item: BaseSocket) => item && item.getName() === name);
   }
 
   public removeSocket(socket: BaseSocket): void {
-    this.sockets = this.sockets.filter((s: BaseSocket) => s.getName() !== socket.getName());
+    this.allSockets = this.allSockets.filter((item: BaseSocket) => item.getName() !== socket.getName());
   }
 
-  public removeClosed(): void {
-    this.sockets = this.sockets.filter((s: BaseSocket) => s.getSocket().readyState === 1);
+  private addAllSockets(socket: WebSocket): void {
+    const newSocket = new BaseSocket(socket, this);
+    this.allSockets.push(newSocket);
+  }
+
+  public removeClose(): void {
+    this.allSockets = this.allSockets.filter((socket: BaseSocket) => socket.getSocket().readyState === 1);
   }
 }

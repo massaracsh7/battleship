@@ -1,15 +1,15 @@
-import { Attack, ShipPlacementData, GridPoint } from '../types/types';
 import Ship from './ship';
+import { Attack, AddShipInfo, Position } from '../types/types';
 
 export default class Battle {
-  private shipField: Ship;
+  private ship: Ship;
   private gameId: number;
   private playerId: number;
 
-  constructor(data: ShipPlacementData) {
+  constructor(data: AddShipInfo) {
     this.gameId = data.gameId;
     this.playerId = data.indexPlayer;
-    this.shipField = new Ship(data.ships);
+    this.ship = new Ship(data.ships);
   }
 
   public getGameId(): number {
@@ -20,13 +20,16 @@ export default class Battle {
     return this.playerId;
   }
 
-  public shoot(target: GridPoint): Attack {
-    const result = this.shipField.checkShoot(target);
+  public shoot(item: Position): Attack {
+    const result = this.ship.checkShoot(item);
     return result;
   }
 
   public checkForWin(): boolean {
-    return this.shipField.checkAllShipsDead();
+    return this.ship.checkAllSink();
   }
 
+  public botAttack(): Position {
+    return this.ship.createRandomAttack();
+  }
 }

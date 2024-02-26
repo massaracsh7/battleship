@@ -1,142 +1,132 @@
-import { Attack, ShipPlacementData, AttackRequest, AttackResponse, GameData, GridPoint } from '../types/types';
 import Room from '../db/room';
 import Player from '../db/player';
-import BattleField from './gameBattle';
-import NamedSocket from '../db/baseSocket';
+import Battle from './gameBattle';
+import BaseSocket from '../db/baseSocket';
+import { AddShipInfo, AttackReqInfo, AttackResInfo, GameData, Position } from '../types/types';
 
 export default class GameArena {
-  private firstGame: GameData;
-  private secondGame: GameData;
+  private gameFirst: GameData;
+  private gameSecond: GameData;
   private room: Room | null;
-  private firstUser: Player;
-  private secondUser: Player;
-  private firstBattleField: BattleField | null;
-  private secondBattleField: BattleField | null;
-  private currentPlayerId: number | null;
+  private firstPlayer: Player;
+  private secondPlayer: Player;
+  private firstBattle: Battle | null;
+  private secondBattle: Battle | null;
+  private curPlayerId: number | null;
 
-  constructor(ownerUser: Player, secondUser: Player, room: Room) {
-    this.firstUser = ownerUser;
-    this.secondUser = secondUser;
+  constructor(firstPl: Player, secondPl: Player, room: Room) {
+    this.firstPlayer = firstPl;
+    this.secondPlayer = secondPl;
     this.room = room;
-    this.firstBattleField = null;
-    this.secondBattleField = null;
-    this.currentPlayerId = null;
+    this.firstBattle = null;
+    this.secondBattle = null;
+    this.curPlayerId = null;
 
-    this.setupGameData();
+    this.createGame();
   }
 
-  public getFirstGameData(): GameData {
-    return this.firstGame;
+  public getGameFirst(): GameData {
+    return this.gameFirst;
   }
 
-  public getSecondGameData(): GameData {
-    return this.secondGame;
+  public getGameSecond(): GameData {
+    return this.gameSecond;
   }
 
-  public getId(): number {
-    return this.firstGame.gameId;
+  public getArenaId(): number {
+    return this.gameFirst.idGame;
   }
 
   public getGameId(): number {
-    return this.firstGame.gameId;
+    return this.gameFirst.idGame;
   }
 
-  public addBattleField(placementData: ShipPlacementData): NamedSocket {
-
-    if (placementData.gameId !== this.firstGame.gameId) return;
-
-    const battleField = new BattleField(placementData);
-
-    if (placementData.indexPlayer === this.firstGame.playerId) {
-      this.secondBattleField = battleField;
-      return this.secondUser.getNamedSocket();
+  public addBattle(info: AddShipInfo): BaseSocket {
+    if (info.gameId !== this.gameFirst.idGame) return;
+    const result = new Battle(info);
+    if (info.indexPlayer === this.gameFirst.idPlayer) {
+      this.secondBattle = result;
+      return this.secondPlayer.getSocket();
     } else {
-      this.firstBattleField = battleField;;
-      return this.firstUser.getNamedSocket();
+      this.firstBattle = result;;
+      return this.firstPlayer.getSocket();
     }
   }
 
-  public checkBattleFields(): boolean {
-    return !!this.firstBattleField && !!this.secondBattleField;
+  public checkBattle(): boolean {
+    return !!this.firstBattle && !!this.secondBattle;
   }
 
-  public getOwnerSocket(): NamedSocket {
-    return this.firstUser.getNamedSocket();
+  public getSocketFirst(): BaseSocket {
+    return this.firstPlayer.getSocket();
   }
 
-  public getSecondPlayerSocket(): NamedSocket {
-    return this.secondUser.getNamedSocket();
+  public getSocketSecond(): BaseSocket {
+    return this.secondPlayer.getSocket();
   }
 
-  public setPlayerTurn(playerId: number): void {
-    if (!this.currentPlayerId) {
-      this.currentPlayerId = playerId;
-      return;
-    }
-    if (playerId === this.firstGame.playerId || playerId === this.secondGame.playerId) {
-      this.currentPlayerId = playerId;
+  public setTurn(playerId: number): void {
+    if (!this.curPlayerId) {
+      this.curPlayerId = playerId;
+    } else if (playerId === this.gameFirst.idPlayer || playerId === this.gameSecond.idPlayer) {
+      this.curPlayerId = playerId;
     }
   }
 
-  public switchPlayerTurn(playerId: number): number {
-
-    if (playerId === this.currentPlayerId) {
-      this.currentPlayerId = this.firstGame.playerId === this.currentPlayerId ? this.secondGame.playerId : this.firstGame.playerId;
-      return this.currentPlayerId;
+  public switchTurn(playerId: number): number {
+    if (playerId === this.curPlayerId) {
+      this.curPlayerId = this.gameFirst.idPlayer === this.curPlayerId ? this.gameSecond.idPlayer : this.gameFirst.idPlayer;
+      return this.curPlayerId;
     }
-
     return playerId;
   }
 
-  public checkShoot(target: AttackRequest): AttackResponse {
-    const field = this.secondBattleField.getPlayerId() === target.indexPlayer ? this.firstBattleField : this.secondBattleField;
-
-    const position: GridPoint = {
-      x: target.x,
-      y: target.y
+  public checkShoot(info: AttackReqInfo): AttackResInfo {
+    const result = this.secondBattle.getPlayerId() === info.indexPlayer ? this.firstBattle : this.secondBattle;
+    const points: Position = {
+      x: info.x,
+      y: info.y
     };
-
-    const shootStatus: Attack = field.shoot(position);
-
     return {
-      currentPlayer: target.indexPlayer,
-      position: shootStatus.position,
-      result: shootStatus.status
+      currentPlayer: info.indexPlayer,
+      ...result.shoot(points)
     }
   }
 
-  public checkForWins(target: AttackRequest): boolean {
-    const field = this.secondBattleField.getPlayerId() === target.indexPlayer ? this.firstBattleField : this.secondBattleField;
-    return field.checkForWin();
+  public checkForWins(info: AttackReqInfo): boolean {
+    const result = this.secondBattle.getPlayerId() === info.indexPlayer ? this.firstBattle : this.secondBattle;
+    return result.checkForWin();
   }
 
-  public getSocketByPlayerId(playerId: number): NamedSocket {
-    return this.firstGame.playerId === playerId ? this.firstUser.getNamedSocket() : this.secondUser.getNamedSocket();
+  public getSocketPlayer(playerId: number): BaseSocket {
+    return this.gameFirst.idPlayer === playerId ? this.firstPlayer.getSocket() : this.secondPlayer.getSocket();
   }
 
-  public getPlayedUsers(): Array<Player> {
-    return [this.firstUser, this.secondUser];
+  public chooseWinner(): number {
+    const firstWin = this.firstBattle.checkForWin();
+    const secondWin = this.secondBattle.checkForWin();
+    if (firstWin) {
+      return this.secondBattle.getPlayerId();
+    } else if (secondWin) {
+      return this.firstBattle.getPlayerId();
+    }
   }
 
-  public determineWinner(): number {
-    const firstWin = this.firstBattleField.checkForWin();
-
-    return firstWin ? this.secondBattleField.getPlayerId() : this.firstBattleField.getPlayerId();
+  public botAttack(): Position {
+    return this.secondBattle.botAttack()
   }
 
-  public botAttack(): GridPoint {
-    return this.secondBattleField.botAttack()
-  }
+  private createGame(): void {
+    const roomId = this.room.getRoomId();
 
-  private setupGameData(): void {
-    this.firstGame = {
-      gameId: this.room.getId(),
-      playerId: this.firstUser.getIndex(),
+    this.gameFirst = {
+      idGame: roomId,
+      idPlayer: this.firstPlayer.getIndex(),
     };
 
-    this.secondGame = {
-      gameId: this.room.getId(),
-      playerId: this.secondUser.getIndex()
+    this.gameSecond = {
+      idGame: roomId,
+      idPlayer: this.secondPlayer.getIndex()
     };
   }
 }

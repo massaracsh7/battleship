@@ -1,52 +1,51 @@
 import { PlayerData, PlayerLogin, PlayerWin } from '../types/types';
 import Room from './room';
-import NamedSocket from './baseSocket';
+import BaseSocket from './baseSocket';
 
 export default class Player {
   private player: PlayerLogin;
-  private winsData: PlayerWin;
+  private winInfo: PlayerWin;
+  private socket: BaseSocket;
+  private room: Room | undefined;
   private index: number | null;
-  private socket: NamedSocket;
-  private room: Room = undefined;
 
-  constructor(player: PlayerLogin, index: number, socket: NamedSocket) {
+  constructor(player: PlayerLogin, index: number, socket: BaseSocket) {
     this.player = player;
-    this.winsData = {
+    this.winInfo = {
       name: player.name,
       wins: 0
-    }
+    };
     this.index = index;
     this.socket = socket;
   }
 
-  public getUserRecord(): PlayerLogin {
+  public getPlayer(): PlayerLogin {
     return this.player;
   }
 
   public getAllWins(): PlayerWin {
-    return this.winsData;
+    return this.winInfo;
+  }
+
+  public isPlayer(player: PlayerLogin): boolean {
+    return player.name === this.player.name && player.password === this.player.password;
   }
 
   public setWins(): PlayerWin {
-    this.winsData.wins += 1;
-    return this.winsData;
+    this.winInfo.wins += 1;
+    return this.winInfo;
   }
 
-  public getIndex(): number {
-    return this.index
+  public getIndex(): number | null {
+    return this.index;
   }
 
   public getName(): string {
     return this.player.name;
   }
 
-  public isUser(player: PlayerLogin): boolean {
-    if (player.name === this.player.name && player.password === this.player.password) return true;
 
-    return false;
-  }
-
-  public getNamedSocket(): NamedSocket {
+  public getSocket(): BaseSocket {
     return this.socket;
   }
 
@@ -54,9 +53,9 @@ export default class Player {
     return {
       name: this.player.name,
       index: this.index,
-      hasError: false,
+      error: false,
       errorText: '',
-    }
+    };
   }
 
   public checkName(name: string): boolean {
@@ -71,7 +70,7 @@ export default class Player {
     this.room = room;
   }
 
-  public getRoom(): Room {
+  public getRoom(): Room | undefined {
     return this.room;
   }
 
@@ -79,7 +78,7 @@ export default class Player {
     this.room = undefined;
   }
 
-  public getIndexRoom(): number {
-    return this.room ? this.room.getId() : null;
+  public getIndexRoom(): number | null {
+    return this.room ? this.room.getRoomId() : null;
   }
 }

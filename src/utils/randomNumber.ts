@@ -10,14 +10,19 @@ export default class RandomNumber {
   }
 
   private create(ids: Array<number>): number {
-    let number: string;
-    do {
-      number = this.createNumberStr();
-    } while (ids.includes(Number(number)));
+    let number: string = '';
+    while (!number || this.checkRoom(Number(number), ids)) {
+      number = '';
+      let i = 0;
+      while (i < 4) {
+        number += String(Math.ceil(Math.random() * 100));
+        i += 1;
+      }
+    }
     return Number(number);
   }
 
-  private createNumberStr(): string {
-    return Array.from({ length: 4 }, () => String(Math.ceil(Math.random() * 100))).join('');
+  private checkRoom(id: number, ids: Array<number>): boolean {
+    return ids.some((item: number) => item === id);
   }
 }

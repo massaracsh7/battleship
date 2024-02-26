@@ -1,203 +1,192 @@
 import DataBase from '../db/database';
 import ResponseBuilder from '../utils/responseBuilder';
-import RoomsBase from '../db/roomsHandler';
+import RoomsHandler from '../db/roomsHandler';
 import BaseSocket from '../db/baseSocket';
 import { logResponse } from '../utils/logMessage';
 import Player from '../db/player';
 import Arena from '../game/gameArena';
+import { AddShipInfo, StartInfo, AttackReqInfo, AttackResInfo, RandomReq, FinishInfo, Turn, PlayerData, PlayerLogin, Command } from '../types/types';
 import Game from '../game/game';
-import {
-  ShipPlacementData,
-  GameStartData,
-  AttackRequest,
-  AttackResponse,
-  RandomAttackRequest,
-  GameEndData,
-  PlayerLogin,
-  TurnData,
-  Command,
-  PlayerData
-} from '../types/types';
 
-export default class GameHandler {
-  public register(user: PlayerLogin, database: DataBase, socket: BaseSocket): string {
-
-    let result: Player = database.findUser(user);
-
+export default class Handlers {
+  public register(player: PlayerLogin, database: DataBase, socket: BaseSocket): string {
+    let result: Player = database.findPlayer(player);
     if (!result) {
-      result = database.registerUser(user, socket);
+      result = database.setPlayer(player, socket);
     }
-
-    if (!database.authenticateUser(user)) {
-      const err: PlayerData = {
-        name: user.name,
+    if (!database.authenticatePlayer(player)) {
+      const errObj: PlayerData = {
+        name: player.name,
         index: -1,
-        hasError: true,
-        errorText: 'Wrong player login or password'
+        error: true,
+        errorText: 'Wrong login or password'
       };
-      return new ResponseBuilder(Command.REG, JSON.stringify(err), -1).buildResponse();
+      return new ResponseBuilder(Command.REG, JSON.stringify(errObj), -1).getResult();
     }
-
-    return new ResponseBuilder(Command.REG, JSON.stringify(result.getPlayerData()), result.getIndex()).buildResponse();
+    return new ResponseBuilder(Command.REG, JSON.stringify(result.getPlayerData()), result.getIndex()).getResult();
   }
 
-  public updateRoom(rooms: RoomsBase): string {
-    return new ResponseBuilder(Command.UPDATE_ROOM, JSON.stringify(rooms.getRoomUpdates()), 0).buildResponse();
+  public updateRoom(rooms: RoomsHandler): string {
+    return new ResponseBuilder(Command.UPDATE_ROOM, JSON.stringify(rooms.getUpdate()), 0).getResult();
   }
 
-  public updateWinners(database: DataBase, sockets: Array<BaseSocket>) {
-    const resp = new ResponseBuilder(Command.UPDATE_WINNERS, JSON.stringify(database.getAllWinners()), 0).buildResponse();
-    logResponse(resp);
+  public updateWinners(database: DataBase, sockets: BaseSocket[]) {
+    const result = new ResponseBuilder(Command.UPDATE_WINNERS, JSON.stringify(database.getAllWinners()), 0).getResult();
+    logResponse(result);
     sockets.forEach((socket: BaseSocket) => {
-      socket && socket.getSocket().send(resp);
+      socket && socket.getSocket().send(result);
     });
   }
 
-  public updateAllRooms(rooms: RoomsBase, sockets: Array<BaseSocket>) {
-
-    const roomsResponse: string = new ResponseBuilder(Command.UPDATE_ROOM, JSON.stringify(rooms.getRoomUpdates()), 0).buildResponse();
-
-    logResponse(roomsResponse);
-
-    sockets.forEach((socket: BaseSocket) => socket.getSocket().send(roomsResponse));
+  public updateAllRooms(rooms: RoomsHandler, sockets: BaseSocket[]): void {
+    const res: string = new ResponseBuilder(Command.UPDATE_ROOM, JSON.stringify(rooms.getUpdate()), 0).getResult();
+    logResponse(res);
+    sockets.forEach((socket: BaseSocket) => socket.getSocket().send(res));
   }
 
-  public addUserToRoom(fUser: Player, sUser: Player, rooms: RoomsBase): Array<string> {
-    const arena: Arena = rooms.createArena(fUser, sUser);
-
-    const responseToOwner: string = new ResponseBuilder(
+  public addPlayerRoom(first: Player, second: Player, rooms: RoomsHandler): string[] {
+    const newArena: Arena = rooms.createArena(first, second);
+    const result1: string = new ResponseBuilder(
       Command.CREATE_GAME,
-      JSON.stringify(arena.getFirstGameData()),
-      arena.getId()).buildResponse();
+      JSON.stringify(newArena.getGameFirst()),
+      newArena.getArenaId()).getResult();
 
-    const responseToSecondPlayer = new ResponseBuilder(
+    const result2 = new ResponseBuilder(
       Command.CREATE_GAME,
-      JSON.stringify(arena.getSecondGameData()),
-      arena.getId()).buildResponse();
+      JSON.stringify(newArena.getGameSecond()),
+      newArena.getArenaId()).getResult();
 
-    return [responseToOwner, responseToSecondPlayer];
+    return [result1, result2];
   }
 
-  public addShips(shipsData: ShipPlacementData, rooms: RoomsBase): boolean {
-    const socket: BaseSocket = rooms.addShipsToArena(shipsData);
+  public addSingle(user: Player, game: Game): string {
+    const newArena: Arena = game.getRooms().createArenaSingle(user, game);
+    const result = new ResponseBuilder(
+      Command.CREATE_GAME,
+      JSON.stringify(newArena.getGameFirst()),
+      newArena.getArenaId()
+    );
 
-    let response: GameStartData;
-    let returnResult: boolean;
+    return result.getResult();
+  }
+
+  public addShips(shipsData: AddShipInfo, rooms: RoomsHandler): boolean {
+    const socket: BaseSocket = rooms.addShipsArena(shipsData);
+    let res: StartInfo;
+    let result: boolean;
 
     if (socket.getSocket()) {
-      response = {
+      res = {
         currentPlayerIndex: shipsData.indexPlayer,
         ships: shipsData.ships
       };
     } else {
-      response = {
+      res = {
         currentPlayerIndex: -1,
         ships: []
       };
     }
 
-    if (rooms.arenaReady(shipsData.gameId)) {
+    if (rooms.checkArenaStart(shipsData.gameId)) {
       const stringResponse = new ResponseBuilder(
         Command.START_GAME,
-        JSON.stringify(response),
+        JSON.stringify(res),
         shipsData.gameId);
 
-      const sockets: Array<BaseSocket> = rooms.fetchSockets(shipsData.gameId);
+      const sockets: BaseSocket[] = rooms.getSocketArena(shipsData.gameId);
 
       sockets.forEach((socket: BaseSocket) => {
-        logResponse(stringResponse.buildResponse());
-        socket.getSocket().send(stringResponse.buildResponse());
+        logResponse(stringResponse.getResult());
+        socket.getSocket().send(stringResponse.getResult());
       });
 
-      returnResult = true;
+      result = true;
     } else {
-      returnResult = false;
+      result = false;
     }
 
-    return returnResult;
+    return result;
   }
 
-  public sendTurn(gameId: number, rooms: RoomsBase, databse: DataBase, allSockets: BaseSocket[]): void {
-    if (rooms.arenaReady(gameId)) {
-      const sockets: Array<BaseSocket> = rooms.fetchSockets(gameId);
+  public sendTurn(gameId: number, rooms: RoomsHandler, databse: DataBase, allSockets: BaseSocket[]): void {
+    if (rooms.checkArenaStart(gameId)) {
+      const sockets: BaseSocket[] = rooms.getSocketArena(gameId);
       const turn: boolean = Math.random() < 0.5 ? true : false;
-      const IdsOfPlayers: Array<number> = rooms.getPlayerIds(gameId);
-      const currentPlayerTurn: number = turn ? IdsOfPlayers[0] : IdsOfPlayers[1];
-
-      const turnResponse: TurnData = {
+      const ids: number[] = rooms.getPlayId(gameId);
+      const currentPlayerTurn: number = turn ? ids[0] : ids[1];
+      const resTurn: Turn = {
         currentPlayer: currentPlayerTurn
       };
 
-      rooms.setFirstPlayerTurn(turnResponse.currentPlayer, gameId);
-
-      const responseData = new ResponseBuilder(Command.TURN, JSON.stringify(turnResponse), gameId);
-
+      rooms.setFirstPlayerId(resTurn.currentPlayer, gameId);
+      const data = new ResponseBuilder(Command.TURN, JSON.stringify(resTurn), gameId);
       sockets.forEach((socket: BaseSocket) => {
-        logResponse(responseData.buildResponse());
-        socket.getSocket().send(responseData.buildResponse());
-      });
-    }
-  }
-
-  public handleAttack(target: AttackRequest, rooms: RoomsBase, databse: DataBase, allSockets: BaseSocket[]): void {
-    const playersID: Array<number> = rooms.getPlayerIds(target.gameId);
-
-    const idPlayersAttack = rooms.getPlayerTurn(target.gameId, target.indexPlayer);
-
-    if (idPlayersAttack.currentPlayer !== target.indexPlayer) {
-      const attack: AttackResponse = rooms.checkAttack(target.gameId, target);
-
-      const sockets: BaseSocket[] = rooms.fetchSockets(target.gameId);
-
-      const attackResponse = new ResponseBuilder(Command.ATTACK, JSON.stringify(attack), target.indexPlayer);
-
-      sockets.forEach((socket: BaseSocket) => {
-        logResponse(attackResponse.buildResponse());
-        socket.getSocket().send(attackResponse.buildResponse());
+        logResponse(data.getResult());
+        socket.getSocket().send(data.getResult());
       });
 
-      const wins: boolean = rooms.checkWin(target.gameId, target);
-
-      if (wins) {
-        const winner: GameEndData = rooms.getWinnerData(target.gameId, target);
-
-        rooms.deleteArena(target.gameId);
-
-        databse.declareWinner(winner.winningPlayer);
-
-        const responseWin = new ResponseBuilder(Command.FINISH, JSON.stringify(winner), target.gameId);
-
-        sockets.forEach((socket: BaseSocket) => {
-          logResponse(responseWin.buildResponse());
-          socket.getSocket().send(responseWin.buildResponse());
-        });
-
-        this.updateWinners(databse, allSockets);
-        this.updateAllRooms(rooms, allSockets);
-
-      } else {
-
-        const turnResponse = new ResponseBuilder(Command.TURN, JSON.stringify(idPlayersAttack), target.indexPlayer);
-
-        sockets.forEach((socket: BaseSocket) => {
-          logResponse(turnResponse.buildResponse());
-          socket.getSocket().send(turnResponse.buildResponse());
-        });
+      if (resTurn.currentPlayer === -1) {
+        const info: AttackReqInfo = this.attackSingle(gameId, rooms);
+        this.handleAttack(info, rooms, databse, allSockets);
       }
     }
   }
 
-  public handleRandomAttack(random: RandomAttackRequest, rooms: RoomsBase, database: DataBase, allSockets: BaseSocket[]) {
+  public handleAttack(info: AttackReqInfo, rooms: RoomsHandler, databse: DataBase, allSockets: BaseSocket[]): void {
+    const playersID: number[] = rooms.getPlayId(info.gameId);
+    const idPlay = rooms.getTurn(info.gameId, info.indexPlayer);
+    if (idPlay.currentPlayer !== info.indexPlayer) {
+      const result: AttackResInfo = rooms.checkArena(info);
+      const sockets: BaseSocket[] = rooms.getSocketArena(info.gameId);
+      const resAttack = new ResponseBuilder(Command.ATTACK, JSON.stringify(result), info.indexPlayer);
+      sockets.forEach((socket: BaseSocket) => {
+        logResponse(resAttack.getResult());
+        socket.getSocket().send(resAttack.getResult());
+      });
+      const wins: boolean = rooms.checkWins(info);
+      if (wins) {
+        const winner: FinishInfo = rooms.getWinners(info);
+        rooms.removeArena(info.gameId);
+        databse.setNewWinner(winner.winPlayer);
+        const responseWin = new ResponseBuilder(Command.FINISH, JSON.stringify(winner), info.gameId);
+        sockets.forEach((socket: BaseSocket) => {
+          logResponse(responseWin.getResult());
+          socket.getSocket().send(responseWin.getResult());
+        });
+        this.updateWinners(databse, allSockets);
+        this.updateAllRooms(rooms, allSockets);
+      } else {
+        const res = new ResponseBuilder(Command.TURN, JSON.stringify(idPlay), info.indexPlayer);
+        sockets.forEach((socket: BaseSocket) => {
+          logResponse(res.getResult());
+          socket.getSocket().send(res.getResult());
+        });
+
+        if (playersID[1] === -1) {
+          const result: AttackReqInfo = this.attackSingle(info.gameId, rooms);
+          console.log(result);
+          this.handleAttack(result, rooms, databse, allSockets);
+        }
+
+      }
+    }
+  }
+
+  public handleRandomAttack(random: RandomReq, rooms: RoomsHandler, database: DataBase, allSockets: BaseSocket[]) {
     const x: number = Math.ceil(Math.random() * 10);
     const y: number = Math.ceil(Math.random() * 10);
 
-    const target: AttackRequest = {
+    const info: AttackReqInfo = {
       x: x,
       y: y,
       ...random
     };
 
-    this.handleAttack(target, rooms, database, allSockets);
+    this.handleAttack(info, rooms, database, allSockets);
+  }
+
+  public attackSingle(gameId: number, rooms: RoomsHandler): AttackReqInfo {
+    return rooms.attackSingle(gameId);
   }
 
 }

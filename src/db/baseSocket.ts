@@ -8,46 +8,41 @@ export default class BaseSocket {
   public socket: WebSocket;
   private gameSocket: GameSocket;
   private game: Game;
-  private nameSocket: string;
+  private name: string;
 
   constructor(socket: WebSocket, game: Game) {
     this.socket = socket;
     this.game = game;
     this.gameSocket = new GameSocket(this, this.game);
-    this.nameSocket = '';
+    this.name = '';
 
     this.socket.on('message', (data) => {
-      const recivedData = data.toString();
-
-      const command: ConsoleMessage = JSON.parse(recivedData);
-
+      const result = data.toString();
+      const command: ConsoleMessage = JSON.parse(result);
       if (!logRequest(command, socket)) return;
-
       this.gameSocket.handle(command, this.socket);
     });
 
     this.socket.on('close', () => {
-      console.log(`Socket of user ${this.nameSocket} was closed`);
-
-      this.game.removeClosed();
+      console.log(`Socket of ${this.name} was closed`);
+      this.game.removeClose();
     });
   }
 
   public setName(name: string) {
-    this.nameSocket = name;
+    this.name = name;
   }
 
   public getName(): string {
-    return this.nameSocket;
+    return this.name;
   }
 
   public getSocket(): WebSocket {
     return this.socket ? this.socket : undefined;
   }
 
-  public isSocketUser(socket: WebSocket): boolean {
+  public isSocketPl(socket: WebSocket): boolean {
     if (socket === this.socket) return true;
-
     return false;
   }
 
@@ -55,7 +50,7 @@ export default class BaseSocket {
     this.socket = socket;
   }
 
-  public checkSocketName(): boolean {
-    return !!this.nameSocket
+  public hasSocket(): boolean {
+    return !!this.name
   }
 }

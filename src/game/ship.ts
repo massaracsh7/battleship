@@ -1,97 +1,103 @@
-import { Cell, Grid, GridPoint, ShipData, Attack } from '../types/types';
+import { Attack, Position, ShipInfo, Cell, Grid } from '../types/types';
 
 export default class Ship {
-  private grid: Array<Grid>;
-  private doneShoots: Array<Attack>;
-
-  constructor(ships: Array<ShipData>) {
+  private grid: Grid[];
+  private doneShoots: Attack[];
+  constructor(ships: ShipInfo[]) {
     this.grid = this.createGrid(ships);
-    this.doneShoots = [];
+    this.doneShoots = [] as Attack[];
   }
 
-  public checkShoot(target: GridPoint): Attack {
-    const isShotDone = this.doneShoots.some((shoot: Attack) => shoot.position.x === target.x && shoot.position.y === target.y);
-
+  public checkShoot(info: Position): Attack {
+    const isShotDone = this.doneShoots.some((shoot: Attack) => shoot.position.x === info.x && shoot.position.y === info.y);
     if (isShotDone) {
-      return this.doneShoots.find((shoot: Attack) => shoot.position.x === target.x && shoot.position.y === target.y) || { position: target, status: 'miss' };
+      return this.doneShoots.find((shoot: Attack) => shoot.position.x === info.x && shoot.position.y === info.y)!;
     }
-
+    let resultShoot: Attack;
     const result = this.grid.find((ship: Grid) => {
-      const coor = ship.cells.find((pos: GridPoint) => pos.x === target.x && pos.y === target.y)
-      if (!ship.isDead && coor) {
+      const coor = ship.position.find((pos: Position) => pos.x === info.x && pos.y === info.y);
+      if (!ship.sink && coor) {
         return ship;
       }
     });
-
+    this.grid.forEach((i: Grid) => console.log(i.position));
     if (result) {
-      const cell: Cell | undefined = result.cells.find((pos: GridPoint) => pos.x === target.x && pos.y === target.y);
+      const cell: Cell | undefined = result.position.find((pos: Position) => pos.x === info.x && pos.y === info.y);
 
-      if (cell && !cell.isHole) {
-        cell.isHole = true;
+      if (cell && !cell.disrupt) {
+        cell.disrupt = true;
       }
-      result.isDead = result.cells.every((cell: Cell) => cell.isHole);
-
-      const status = this.checkShipStatus(result);
-
-      const attack: Attack = {
-        position: target,
+      result.sink = result.position.every((cell: Cell) => cell.disrupt);
+      const status = this.checkStatus(result);
+      resultShoot = {
+        position: info,
         status: status
       };
-
-      this.doneShoots.push(attack);
-      return attack;
+      this.doneShoots.push(resultShoot);
+      return resultShoot;
     }
 
-    const attack: Attack = {
-      position: target,
+    resultShoot = {
+      position: info,
       status: 'miss'
     };
-
-    this.doneShoots.push(attack);
-    return attack;
+    this.doneShoots.push(resultShoot);
+    return resultShoot;
   }
 
-  public checkAllShipsDead(): boolean {
-    return this.grid.every((ship: Grid) => ship.isDead);
+
+  public checkAllSink(): boolean {
+    return this.grid.every((ship: Grid) => ship.sink);
   }
 
-  private createGrid(ships: Array<ShipData>): Array<Grid> {
-    return ships.map((ship: ShipData) => {
-      let cells: Array<Cell>;
-      const isHorizontal = !ship.direction;
+  private randomPoints(): Position {
+    const x = Math.floor(Math.random() * 9);
+    const y = Math.floor(Math.random() * 9);
+    return { x, y };
+  }
 
-      cells = this.calculateCells(ship.position, ship.length, isHorizontal);
+  public createRandomAttack(): Position {
+    return this.randomPoints();
+  }
 
-      return {
-        cells: cells,
-        size: ship.size,
-        isDead: false
+  private createGrid(ships: ShipInfo[]): Grid[] {
+    return ships.map((ship: ShipInfo) => {
+      let points: Cell[] = [];
+
+      switch (ship.direction) {
+        case false:
+          for (let i = 0; i < ship.length; i += 1) {
+            const cells: Cell = {
+              x: ship.position.x + i,
+              y: ship.position.y,
+              disrupt: false
+            }
+            points.push(cells);
+          }
+          break;
+
+        case true:
+          for (let i = 0; i < ship.length; i += 1) {
+            const cells: Cell = {
+              x: ship.position.x,
+              y: ship.position.y + i,
+              disrupt: false
+            }
+            points.push(cells);
+          }
+          break;
+      }
+      const pointGrid: Grid = {
+        position: points,
+        type: ship.type,
+        sink: false
       };
+      return pointGrid;
     });
   }
 
-  private calculateCells(startPos: GridPoint, length: number, isHorizontal: boolean): Array<Cell> {
-    const cells: Array<Cell> = [];
-
-    for (let i = 0; i < length; i++) {
-      const x = isHorizontal ? startPos.x + i : startPos.x;
-      const y = isHorizontal ? startPos.y : startPos.y + i;
-
-      const cell: Cell = {
-        x: x,
-        y: y,
-        isHole: false
-      };
-
-      cells.push(cell);
-    }
-
-    return cells;
-  }
-
-  private checkShipStatus(ship: Grid): "killed" | "shot" {
-    if (ship.cells.every((cell: Cell) => cell.isHole)) return 'killed';
-
+  private checkStatus(ship: Grid): "killed" | "shot" {
+    if (ship.position.every((item: Cell) => item.disrupt)) return 'killed';
     return 'shot';
   }
 
