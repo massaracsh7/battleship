@@ -16,11 +16,11 @@ export default class CreateBot {
     for (let i = 0; i < 10; i++) {
       const direct: boolean = this.botDir();
       const [type, typeString]: [number, string] = this.getType(i);
-      let check: boolean = false;
+      let answer: boolean = false;
       let result: CreatedShip;
-      while (!check) {
+      while (!answer) {
         result = this.createData(direct, type, typeString);
-        check = this.checkPos(result);
+        answer = this.checkPos(result);
       }
       this.ships.push(result);
     }

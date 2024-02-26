@@ -5,10 +5,10 @@ import Game from '../game/game';
 import GameSocket from '../game/gameSocket';
 
 export default class BaseSocket {
-  public socket: WebSocket;
-  private gameSocket: GameSocket;
   private game: Game;
   private name: string;
+  public socket: WebSocket;
+  private gameSocket: GameSocket;
 
   constructor(socket: WebSocket, game: Game) {
     this.socket = socket;
@@ -28,6 +28,9 @@ export default class BaseSocket {
       this.game.removeClose();
     });
   }
+  public getSocket(): WebSocket {
+    return this.socket ? this.socket : undefined;
+  }
 
   public setName(name: string) {
     this.name = name;
@@ -35,10 +38,6 @@ export default class BaseSocket {
 
   public getName(): string {
     return this.name;
-  }
-
-  public getSocket(): WebSocket {
-    return this.socket ? this.socket : undefined;
   }
 
   public isSocketPl(socket: WebSocket): boolean {

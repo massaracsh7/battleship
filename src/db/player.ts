@@ -74,10 +74,6 @@ export default class Player {
     return this.room;
   }
 
-  public deleteRoom(): void {
-    this.room = undefined;
-  }
-
   public getIndexRoom(): number | null {
     return this.room ? this.room.getRoomId() : null;
   }
